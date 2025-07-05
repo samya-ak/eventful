@@ -6,6 +6,7 @@ import '../models/event.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/section_header.dart';
 import '../widgets/event_card.dart';
+import 'create_event_page.dart';
 
 class EventsPage extends StatelessWidget {
   const EventsPage({super.key});
@@ -51,7 +52,7 @@ class EventsPage extends StatelessWidget {
           children: [
             SectionHeader(
               title: AppStrings.eventsNearYouTitle,
-              onCreatePressed: _handleCreateEvent,
+              onCreatePressed: () => _handleCreateEvent(context),
             ),
             SizedBox(height: AppConstants.x4),
             Expanded(
@@ -72,9 +73,10 @@ class EventsPage extends StatelessWidget {
     );
   }
 
-  void _handleCreateEvent() {
-    // TODO: Navigate to create event page
-    print('Create event pressed');
+  void _handleCreateEvent(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const CreateEventPage()));
   }
 
   void _handleEventTap(Event event) {

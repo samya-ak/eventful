@@ -12,6 +12,13 @@
 .swiftpm/
 migrate_working_dir/
 
+# Configuration files with sensitive data
+lib/config/supabase_config.dart
+.env
+.env.local
+.env.production
+.env.staging
+
 # IntelliJ related
 *.iml
 *.ipr
