@@ -153,4 +153,129 @@ class SupabaseService {
       throw Exception('Failed to fetch events with images: $e');
     }
   }
+
+  /// Create a new location with optional images
+  static Future<Map<String, dynamic>?> createLocation({
+    required String eventId,
+    required String locationName,
+    String? description,
+    required double latitude,
+    required double longitude,
+    List<File>? images,
+  }) async {
+    try {
+      // First, create the location record using PostgreSQL POINT format for coordinates
+      final locationResponse = await _client
+          .from('locations')
+          .insert({
+            'event_id': eventId,
+            'location_name': locationName,
+            'location_description': description,
+            'coordinates':
+                '($longitude,$latitude)', // PostgreSQL POINT format: (x,y)
+          })
+          .select()
+          .single();
+
+      final locationId = locationResponse['location_id'];
+
+      // If there are images, upload them and create picture records
+      if (images != null && images.isNotEmpty) {
+        await _uploadLocationImages(images, locationId);
+      }
+
+      return locationResponse;
+    } catch (e) {
+      print('Error creating location: $e');
+      throw Exception('Failed to create location: $e');
+    }
+  }
+
+  /// Upload multiple images for a location
+  static Future<void> _uploadLocationImages(
+    List<File> images,
+    String locationId,
+  ) async {
+    try {
+      for (int i = 0; i < images.length; i++) {
+        final image = images[i];
+        // Generate unique filename with index
+        final String fileName = '${locationId}_$i.jpg';
+        final String filePath = 'locations/$fileName';
+
+        // Upload image to storage
+        await _client.storage.from(_bucketName).upload(filePath, image);
+
+        // Get public URL
+        final String imageUrl = _client.storage
+            .from(_bucketName)
+            .getPublicUrl(filePath);
+
+        // Create picture record
+        await _client.from('pictures').insert({
+          'picture_url': imageUrl,
+          'source_type': 'locations',
+          'source_id': locationId,
+        });
+      }
+    } catch (e) {
+      print('Error uploading location images: $e');
+      throw Exception('Failed to upload location images: $e');
+    }
+  }
+
+  /// Get locations for a specific event with their images
+  static Future<List<Map<String, dynamic>>> getLocationsForEvent(
+    String eventId,
+  ) async {
+    try {
+      // Fetch all locations for the event
+      // Use ST_X and ST_Y to extract latitude and longitude from POINT
+      final locations = await _client
+          .from('locations')
+          .select(
+            'location_id, location_name, location_description, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, created_at, updated_at',
+          )
+          .eq('event_id', eventId)
+          .order('created_at', ascending: false);
+
+      if (locations.isEmpty) {
+        return [];
+      }
+
+      // Get all location IDs
+      final locationIds = locations.map((l) => l['location_id']).toList();
+
+      // Fetch all pictures for these locations
+      final pictures = await _client
+          .from('pictures')
+          .select('picture_url, source_id')
+          .eq('source_type', 'locations')
+          .inFilter('source_id', locationIds);
+
+      // Group pictures by location_id
+      final Map<String, List<String>> picturesByLocationId = {};
+      for (var picture in pictures) {
+        final locationId = picture['source_id'];
+        if (!picturesByLocationId.containsKey(locationId)) {
+          picturesByLocationId[locationId] = [];
+        }
+        picturesByLocationId[locationId]!.add(picture['picture_url']);
+      }
+
+      // Combine locations with their images
+      final result = locations.map((location) {
+        final locationId = location['location_id'];
+        return {
+          ...location,
+          'images': picturesByLocationId[locationId] ?? <String>[],
+        };
+      }).toList();
+
+      return result;
+    } catch (e) {
+      print('Error fetching locations for event: $e');
+      throw Exception('Failed to fetch locations for event: $e');
+    }
+  }
 }

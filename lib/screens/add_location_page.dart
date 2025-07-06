@@ -8,6 +8,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../l10n/app_strings.dart';
 import '../widgets/image_picker_widget.dart';
+import '../services/supabase_service.dart';
 
 class AddLocationPage extends StatefulWidget {
   final String eventId;
@@ -193,21 +194,24 @@ class _AddLocationPageState extends State<AddLocationPage> {
     });
 
     try {
-      // TODO: Implement location saving logic
-      // This will be implemented when backend logic is added
-      // The location data will include:
-      // - Location name: _locationNameController.text
-      // - Location description: _locationDescriptionController.text
-      // - Coordinates: _selectedLocation.latitude, _selectedLocation.longitude
-      // - Images: _selectedImages
+      // Save location to Supabase
+      final locationData = await SupabaseService.createLocation(
+        eventId: widget.eventId,
+        locationName: _locationNameController.text.trim(),
+        description: _locationDescriptionController.text.trim().isNotEmpty
+            ? _locationDescriptionController.text.trim()
+            : null,
+        latitude: _selectedLocation.latitude,
+        longitude: _selectedLocation.longitude,
+        images: _selectedImages.isNotEmpty ? _selectedImages : null,
+      );
 
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
-
-      if (mounted) {
+      if (mounted && locationData != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Location added successfully!'),
+          SnackBar(
+            content: Text(
+              'Location "${_locationNameController.text}" added successfully!',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
@@ -217,7 +221,7 @@ class _AddLocationPageState extends State<AddLocationPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error adding location: $e'),
+            content: Text('Error adding location: ${e.toString()}'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -443,36 +447,126 @@ class _AddLocationPageState extends State<AddLocationPage> {
                                     ),
                                   ),
                                 )
-                              : FlutterMap(
-                                  key: ValueKey(_selectedLocation.toString()),
-                                  mapController: _mapController,
-                                  options: MapOptions(
-                                    initialCenter: _selectedLocation,
-                                    initialZoom: 15.0,
-                                    minZoom: 1.0,
-                                    maxZoom: 20.0,
-                                    onTap: _onMapTap,
-                                  ),
+                              : Stack(
                                   children: [
-                                    TileLayer(
-                                      urlTemplate:
-                                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                      userAgentPackageName:
-                                          'com.example.mattya',
-                                    ),
-                                    MarkerLayer(
-                                      markers: [
-                                        Marker(
-                                          point: _selectedLocation,
-                                          width: 40,
-                                          height: 40,
-                                          child: const Icon(
-                                            Icons.location_on,
-                                            color: Colors.red,
-                                            size: 40,
-                                          ),
+                                    FlutterMap(
+                                      key: ValueKey(
+                                        _selectedLocation.toString(),
+                                      ),
+                                      mapController: _mapController,
+                                      options: MapOptions(
+                                        initialCenter: _selectedLocation,
+                                        initialZoom: 15.0,
+                                        minZoom: 1.0,
+                                        maxZoom: 22.0,
+                                        onTap: _onMapTap,
+                                      ),
+                                      children: [
+                                        TileLayer(
+                                          urlTemplate:
+                                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                          userAgentPackageName:
+                                              'com.example.mattya',
+                                        ),
+                                        MarkerLayer(
+                                          markers: [
+                                            Marker(
+                                              point: _selectedLocation,
+                                              width: 40,
+                                              height: 40,
+                                              child: const Icon(
+                                                Icons.location_on,
+                                                color: Colors.red,
+                                                size: 40,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
+                                    ),
+                                    // Zoom controls
+                                    Positioned(
+                                      right: 10,
+                                      top: 10,
+                                      child: Column(
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: AppColors.secondary,
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withOpacity(0.2),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: IconButton(
+                                              onPressed: () {
+                                                final zoom =
+                                                    _mapController.camera.zoom;
+                                                _mapController.move(
+                                                  _selectedLocation,
+                                                  zoom + 1,
+                                                );
+                                              },
+                                              icon: Icon(
+                                                Icons.add,
+                                                color: AppColors.whiteWithAlpha(
+                                                  0.8,
+                                                ),
+                                                size: 20,
+                                              ),
+                                              padding: const EdgeInsets.all(8),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 36,
+                                                minHeight: 36,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: AppColors.secondary,
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withOpacity(0.2),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: IconButton(
+                                              onPressed: () {
+                                                final zoom =
+                                                    _mapController.camera.zoom;
+                                                _mapController.move(
+                                                  _selectedLocation,
+                                                  zoom - 1,
+                                                );
+                                              },
+                                              icon: Icon(
+                                                Icons.remove,
+                                                color: AppColors.whiteWithAlpha(
+                                                  0.8,
+                                                ),
+                                                size: 20,
+                                              ),
+                                              padding: const EdgeInsets.all(8),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 36,
+                                                minHeight: 36,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
