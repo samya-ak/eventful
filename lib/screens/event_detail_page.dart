@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
+import 'add_location_page.dart';
 
 class EventDetailPage extends StatefulWidget {
+  final String eventId;
   final String eventName;
   final String? eventDescription;
   final String? eventImageUrl;
 
   const EventDetailPage({
     super.key,
+    required this.eventId,
     required this.eventName,
     this.eventDescription,
     this.eventImageUrl,
@@ -116,7 +119,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       size: 24,
                     ),
                     onPressed: () {
-                      print('Back button pressed'); // Debug line
                       Navigator.of(context).pop();
                     },
                     splashRadius: 24,
@@ -198,8 +200,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 bottom: 50,
                 child: ElevatedButton(
                   onPressed: () {
-                    // TODO: Implement add location functionality
-                    print('Add Location tapped');
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            AddLocationPage(eventId: widget.eventId),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.white,
@@ -305,8 +311,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       padding: EdgeInsets.all(AppConstants.x4),
                       child: ElevatedButton(
                         onPressed: () {
-                          // TODO: Implement map functionality
-                          print('Map tapped');
+                          // TODO: Implement map functionality to show all event locations
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.white,

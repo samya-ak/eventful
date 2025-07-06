@@ -198,6 +198,7 @@ class _EventsPageState extends State<EventsPage> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => EventDetailPage(
+          eventId: event.eventId ?? 'unknown',
           eventName: event.name,
           eventDescription: event.description,
           eventImageUrl: (event.images?.isNotEmpty == true)
