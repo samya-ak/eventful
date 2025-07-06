@@ -8,6 +8,7 @@ import '../widgets/section_header.dart';
 import '../widgets/event_card.dart';
 import '../services/supabase_service.dart';
 import 'create_event_page.dart';
+import 'event_detail_page.dart';
 
 class EventsPage extends StatefulWidget {
   const EventsPage({super.key});
@@ -194,7 +195,16 @@ class _EventsPageState extends State<EventsPage> {
   }
 
   void _handleEventTap(Event event) {
-    // TODO: Navigate to event details page
-    print('Event tapped: ${event.name}');
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EventDetailPage(
+          eventName: event.name,
+          eventDescription: event.description,
+          eventImageUrl: (event.images?.isNotEmpty == true)
+              ? event.images!.first
+              : null,
+        ),
+      ),
+    );
   }
 }

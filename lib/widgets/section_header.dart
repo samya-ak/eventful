@@ -34,7 +34,14 @@ class SectionHeader extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppConstants.x2),
             ),
           ),
-          child: const Text(AppStrings.createButtonText),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.add, size: 16, color: AppColors.white),
+              SizedBox(width: AppConstants.x1),
+              const Text(AppStrings.createButtonText),
+            ],
+          ),
         ),
       ],
     );
