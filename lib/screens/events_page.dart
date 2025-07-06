@@ -6,39 +6,49 @@ import '../models/event.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/section_header.dart';
 import '../widgets/event_card.dart';
+import '../services/supabase_service.dart';
 import 'create_event_page.dart';
 
-class EventsPage extends StatelessWidget {
+class EventsPage extends StatefulWidget {
   const EventsPage({super.key});
 
-  // Sample events data - In a real app, this would come from a service/repository
-  static const List<Event> _sampleEvents = [
-    Event(
-      name: 'Summer Music Festival',
-      description:
-          'Join us for an amazing outdoor music festival featuring local and international artists. Experience great music, delicious food, and unforgettable memories under the stars.',
-    ),
-    Event(
-      name: 'Tech Conference 2025',
-      description:
-          'Discover the latest in technology and innovation. Network with industry leaders and learn about cutting-edge developments in AI, blockchain, and more.',
-    ),
-    Event(
-      name: 'Art Gallery Opening',
-      description:
-          'Explore contemporary art from emerging local artists. Wine and appetizers will be served.',
-    ),
-    Event(
-      name: 'Cooking Workshop',
-      description:
-          'Learn to cook authentic Italian cuisine with professional chef Marco Rossi. All ingredients and equipment provided. Perfect for beginners and experienced cooks alike.',
-    ),
-    Event(
-      name: 'Marathon Run',
-      description:
-          'Annual city marathon supporting local charities. Register now for early bird pricing.',
-    ),
-  ];
+  @override
+  State<EventsPage> createState() => _EventsPageState();
+}
+
+class _EventsPageState extends State<EventsPage> {
+  List<Event> _events = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEvents();
+  }
+
+  Future<void> _loadEvents() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      final eventsData = await SupabaseService.getEventsWithImages();
+      final events = eventsData.map((data) => Event.fromJson(data)).toList();
+
+      setState(() {
+        _events = events;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+      print('Error loading events: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,28 +65,132 @@ class EventsPage extends StatelessWidget {
               onCreatePressed: () => _handleCreateEvent(context),
             ),
             SizedBox(height: AppConstants.x4),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _sampleEvents.length,
-                itemBuilder: (context, index) {
-                  final event = _sampleEvents[index];
-                  return EventCard(
-                    event: event,
-                    onTap: () => _handleEventTap(event),
-                  );
-                },
-              ),
-            ),
+            Expanded(child: _buildEventsList()),
           ],
         ),
       ),
     );
   }
 
-  void _handleCreateEvent(BuildContext context) {
-    Navigator.of(
+  Widget _buildEventsList() {
+    if (_isLoading) {
+      return _buildLoadingState();
+    }
+
+    if (_errorMessage != null) {
+      return _buildErrorState();
+    }
+
+    if (_events.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadEvents,
+      child: ListView.builder(
+        itemCount: _events.length,
+        itemBuilder: (context, index) {
+          final event = _events[index];
+          return EventCard(event: event, onTap: () => _handleEventTap(event));
+        },
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: AppColors.button),
+          SizedBox(height: 16),
+          Text(
+            'Loading events...',
+            style: TextStyle(color: AppColors.white, fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 64, color: AppColors.white),
+          const SizedBox(height: 16),
+          const Text(
+            'Error loading events',
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _errorMessage ?? 'Unknown error occurred',
+            style: const TextStyle(color: AppColors.white, fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadEvents,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.button,
+              foregroundColor: AppColors.white,
+            ),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.event_busy, size: 64, color: AppColors.white),
+          const SizedBox(height: 16),
+          const Text(
+            'No events found',
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Be the first to create an event!',
+            style: TextStyle(color: AppColors.white, fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => _handleCreateEvent(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.button,
+              foregroundColor: AppColors.white,
+            ),
+            child: const Text('Create Event'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleCreateEvent(BuildContext context) async {
+    final result = await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (context) => const CreateEventPage()));
+
+    // If an event was created successfully, refresh the list
+    if (result == true) {
+      _loadEvents();
+    }
   }
 
   void _handleEventTap(Event event) {

@@ -37,8 +37,8 @@ class SupabaseService {
   static Future<void> _uploadEventImage(File image, String eventId) async {
     try {
       // Generate unique filename
-      final String fileName = '${eventId}.jpg';
-      final String filePath = '$fileName';
+      final String fileName = '$eventId.jpg';
+      final String filePath = fileName;
 
       // Upload image to storage
       await _client.storage.from(_bucketName).upload(filePath, image);
@@ -103,6 +103,54 @@ class SupabaseService {
     } catch (e) {
       print('Supabase connection check failed: $e');
       return false;
+    }
+  }
+
+  /// Fetch events with their associated images using query builder (LEFT JOIN equivalent)
+  static Future<List<Map<String, dynamic>>> getEventsWithImages() async {
+    try {
+      // Fetch all events
+      final events = await _client
+          .from('events')
+          .select(
+            'event_id, event_name, event_description, created_at, updated_at',
+          )
+          .order('created_at', ascending: false);
+
+      if (events.isEmpty) {
+        return [];
+      }
+
+      // Get all event IDs
+      final eventIds = events.map((e) => e['event_id']).toList();
+
+      // Fetch all pictures for these events (polymorphic)
+      final pictures = await _client
+          .from('pictures')
+          .select('picture_url, source_id')
+          .eq('source_type', 'events')
+          .inFilter('source_id', eventIds);
+
+      // Group pictures by event_id
+      final Map<String, List<String>> picturesByEventId = {};
+      for (var picture in pictures) {
+        final eventId = picture['source_id'];
+        if (!picturesByEventId.containsKey(eventId)) {
+          picturesByEventId[eventId] = [];
+        }
+        picturesByEventId[eventId]!.add(picture['picture_url']);
+      }
+
+      // Combine events with their images
+      final result = events.map((event) {
+        final eventId = event['event_id'];
+        return {...event, 'images': picturesByEventId[eventId] ?? <String>[]};
+      }).toList();
+
+      return result;
+    } catch (e) {
+      print('Error fetching events with images: $e');
+      throw Exception('Failed to fetch events with images: $e');
     }
   }
 }
