@@ -179,26 +179,39 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 ),
               ),
               child: _isSubmitting
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: AppColors.white,
-                            strokeWidth: 2,
-                          ),
+                  ? Container(
+                      padding: EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withAlpha(
+                          (0.95 * 255).round(),
                         ),
-                        SizedBox(width: AppConstants.x2),
-                        const Text(
-                          'Creating Event...',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                        borderRadius: BorderRadius.circular(AppConstants.x2),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: AppColors.white,
+                              strokeWidth: 2,
+                            ),
                           ),
-                        ),
-                      ],
+                          SizedBox(width: AppConstants.x2),
+                          const Text(
+                            'Creating Event...',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     )
                   : Text(
                       AppStrings.confirmButtonText,
@@ -243,7 +256,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 content: Text(
                   'Event "${eventData['event_name']}" created successfully!',
                 ),
-                backgroundColor: Colors.green,
+                backgroundColor: AppColors.success,
                 duration: const Duration(seconds: 3),
               ),
             );
@@ -258,7 +271,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Error creating event: ${e.toString()}'),
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
               duration: const Duration(seconds: 5),
             ),
           );
