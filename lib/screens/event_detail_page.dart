@@ -3,6 +3,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../services/supabase_service.dart';
 import 'add_location_page.dart';
+import 'event_map_page.dart';
 
 class EventDetailPage extends StatefulWidget {
   final String eventId;
@@ -453,7 +454,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         child: Center(
                           child: FloatingActionButton.extended(
                             onPressed: () {
-                              // TODO: Implement map functionality to show all event locations
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => EventMapPage(
+                                    eventName: widget.eventName,
+                                    locations: _locations,
+                                  ),
+                                ),
+                              );
                             },
                             backgroundColor: AppColors.white,
                             foregroundColor: AppColors.black,
