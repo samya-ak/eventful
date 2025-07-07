@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
+import '../services/supabase_service.dart';
 import 'add_location_page.dart';
 
 class EventDetailPage extends StatefulWidget {
@@ -23,6 +24,110 @@ class EventDetailPage extends StatefulWidget {
 
 class _EventDetailPageState extends State<EventDetailPage> {
   bool _isImageLoading = true;
+  List<Map<String, dynamic>> _locations = [];
+  bool _isLoadingLocations = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLocations();
+  }
+
+  Future<void> _fetchLocations() async {
+    try {
+      setState(() {
+        _isLoadingLocations = true;
+      });
+
+      final locations = await SupabaseService.getLocationsForEvent(
+        widget.eventId,
+      );
+
+      if (mounted) {
+        setState(() {
+          _locations = locations;
+          _isLoadingLocations = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching locations: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingLocations = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildLocationCard(Map<String, dynamic> location) {
+    final String locationName = location['location_name'] ?? 'Unnamed Location';
+    final String? locationDescription = location['location_description'];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppConstants.x4,
+        vertical: AppConstants.x1,
+      ),
+      padding: const EdgeInsets.all(AppConstants.x3),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(AppConstants.x2),
+        border: Border.all(color: AppColors.whiteWithAlpha(0.2), width: 1),
+      ),
+      child: Row(
+        children: [
+          // Location icon
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.secondary,
+              borderRadius: BorderRadius.circular(AppConstants.x1),
+            ),
+            child: const Icon(
+              Icons.location_on,
+              color: AppColors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: AppConstants.x3),
+          // Location info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  locationName,
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (locationDescription != null &&
+                    locationDescription.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppConstants.x1),
+                    child: Text(
+                      locationDescription,
+                      style: TextStyle(
+                        color: AppColors.whiteWithAlpha(0.7),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -199,13 +304,17 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 right: AppConstants.x4,
                 bottom: 50,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
+                  onPressed: () async {
+                    final result = await Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) =>
                             AddLocationPage(eventId: widget.eventId),
                       ),
                     );
+                    // Refresh locations list when returning from add location page
+                    if (result == true || mounted) {
+                      _fetchLocations();
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.white,
@@ -258,95 +367,118 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     width: 1,
                   ),
                 ),
-                child: Column(
+                child: Stack(
                   children: [
-                    // Header
-                    Padding(
-                      padding: EdgeInsets.all(AppConstants.x4),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on,
-                            color: AppColors.white,
-                            size: 20,
+                    Column(
+                      children: [
+                        // Header
+                        Padding(
+                          padding: EdgeInsets.all(AppConstants.x4),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on,
+                                color: AppColors.white,
+                                size: 20,
+                              ),
+                              SizedBox(width: AppConstants.x2),
+                              Text(
+                                _isLoadingLocations
+                                    ? 'Locations'
+                                    : 'Locations${_locations.isNotEmpty ? ' (${_locations.length})' : ''}',
+                                style: const TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: AppConstants.x2),
-                          const Text(
-                            'Locations',
-                            style: TextStyle(
-                              color: AppColors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                        // Empty state or locations list
+                        Expanded(
+                          child: _isLoadingLocations
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.white,
+                                  ),
+                                )
+                              : _locations.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.add_location_alt_outlined,
+                                        color: AppColors.whiteWithAlpha(0.6),
+                                        size: 32,
+                                      ),
+                                      SizedBox(height: AppConstants.x2),
+                                      Text(
+                                        'Start by adding location',
+                                        style: TextStyle(
+                                          color: AppColors.whiteWithAlpha(0.7),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : RefreshIndicator(
+                                  onRefresh: _fetchLocations,
+                                  color: AppColors.button,
+                                  child: ListView.builder(
+                                    padding: const EdgeInsets.only(
+                                      top: AppConstants.x2,
+                                      bottom:
+                                          80, // Space for floating map button
+                                    ),
+                                    itemCount: _locations.length,
+                                    itemBuilder: (context, index) {
+                                      final location = _locations[index];
+                                      return _buildLocationCard(location);
+                                    },
+                                  ),
+                                ),
+                        ),
+                      ],
                     ),
-                    // Empty state - start by adding location (centered in remaining space)
-                    Expanded(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.add_location_alt_outlined,
-                              color: AppColors.whiteWithAlpha(0.6),
-                              size: 32,
-                            ),
-                            SizedBox(height: AppConstants.x2),
-                            Text(
-                              'Start by adding location',
-                              style: TextStyle(
-                                color: AppColors.whiteWithAlpha(0.7),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
+                    // Floating Map Button
+                    if (_locations.isNotEmpty)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: AppConstants.x4,
+                        child: Center(
+                          child: FloatingActionButton.extended(
+                            onPressed: () {
+                              // TODO: Implement map functionality to show all event locations
+                            },
+                            backgroundColor: AppColors.white,
+                            foregroundColor: AppColors.black,
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppConstants.x8,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Map Button at bottom
-                    Padding(
-                      padding: EdgeInsets.all(AppConstants.x4),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // TODO: Implement map functionality to show all event locations
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.white,
-                          foregroundColor: AppColors.black,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: AppConstants.x4,
-                            vertical: AppConstants.x3,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppConstants.x6,
-                            ),
-                          ),
-                          elevation: 4,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
+                            icon: const Icon(
                               Icons.map,
                               size: 18,
                               color: AppColors.black,
                             ),
-                            SizedBox(width: AppConstants.x2),
-                            const Text(
+                            label: const Text(
                               'Map',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
+                                color: AppColors.black,
                               ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),

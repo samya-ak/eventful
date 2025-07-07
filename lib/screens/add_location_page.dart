@@ -215,7 +215,7 @@ class _AddLocationPageState extends State<AddLocationPage> {
             backgroundColor: AppColors.success,
           ),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true); // Return true to indicate success
       }
     } catch (e) {
       if (mounted) {

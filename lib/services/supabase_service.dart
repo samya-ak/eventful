@@ -230,11 +230,10 @@ class SupabaseService {
   ) async {
     try {
       // Fetch all locations for the event
-      // Use ST_X and ST_Y to extract latitude and longitude from POINT
       final locations = await _client
           .from('locations')
           .select(
-            'location_id, location_name, location_description, ST_Y(coordinates) as latitude, ST_X(coordinates) as longitude, created_at, updated_at',
+            'location_id, location_name, location_description, coordinates, created_at, updated_at',
           )
           .eq('event_id', eventId)
           .order('created_at', ascending: false);
@@ -243,8 +242,50 @@ class SupabaseService {
         return [];
       }
 
+      // Process coordinates and extract latitude/longitude
+      final processedLocations = locations.map<Map<String, dynamic>>((
+        location,
+      ) {
+        final coordinates = location['coordinates'];
+        double latitude = 0.0;
+        double longitude = 0.0;
+
+        print(
+          'Raw coordinates received: $coordinates (type: ${coordinates.runtimeType})',
+        );
+
+        // Parse coordinates based on the actual format received
+        if (coordinates != null) {
+          try {
+            if (coordinates is String) {
+              // Parse PostgreSQL POINT format: (x,y) where x=longitude, y=latitude
+              final coordString = coordinates.replaceAll(RegExp(r'[()]'), '');
+              final parts = coordString.split(',');
+              if (parts.length == 2) {
+                longitude = double.parse(parts[0].trim());
+                latitude = double.parse(parts[1].trim());
+              }
+            } else if (coordinates is Map) {
+              // Handle if coordinates come as a map
+              longitude = (coordinates['x'] ?? 0.0).toDouble();
+              latitude = (coordinates['y'] ?? 0.0).toDouble();
+            } else if (coordinates is List && coordinates.length == 2) {
+              // Handle if coordinates come as a list [x, y]
+              longitude = coordinates[0].toDouble();
+              latitude = coordinates[1].toDouble();
+            }
+          } catch (e) {
+            print('Error parsing coordinates: $e');
+          }
+        }
+
+        return {...location, 'latitude': latitude, 'longitude': longitude};
+      }).toList();
+
       // Get all location IDs
-      final locationIds = locations.map((l) => l['location_id']).toList();
+      final locationIds = processedLocations
+          .map((l) => l['location_id'])
+          .toList();
 
       // Fetch all pictures for these locations
       final pictures = await _client
@@ -264,7 +305,7 @@ class SupabaseService {
       }
 
       // Combine locations with their images
-      final result = locations.map((location) {
+      final result = processedLocations.map((location) {
         final locationId = location['location_id'];
         return {
           ...location,
