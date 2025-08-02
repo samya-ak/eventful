@@ -7,6 +7,7 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/section_header.dart';
 import '../widgets/event_card.dart';
 import '../services/supabase_service.dart';
+import '../utils/admin_utils.dart';
 import 'create_event_page.dart';
 import 'edit_event_page.dart';
 import 'event_detail_page.dart';
@@ -64,7 +65,9 @@ class _EventsPageState extends State<EventsPage> {
           children: [
             SectionHeader(
               title: AppStrings.eventsNearYouTitle,
-              onCreatePressed: () => _handleCreateEvent(context),
+              onCreatePressed: AdminUtils.adminOnlyCallback(
+                () => _handleCreateEvent(context),
+              ),
             ),
             SizedBox(height: AppConstants.x4),
             Expanded(child: _buildEventsList()),
@@ -96,8 +99,10 @@ class _EventsPageState extends State<EventsPage> {
           return EventCard(
             event: event,
             onTap: () => _handleEventTap(event),
-            onEdit: () => _handleEditEvent(event),
-            onDelete: () => _handleDeleteEvent(event),
+            onEdit: AdminUtils.adminOnlyCallback(() => _handleEditEvent(event)),
+            onDelete: AdminUtils.adminOnlyCallback(
+              () => _handleDeleteEvent(event),
+            ),
           );
         },
       ),
@@ -175,15 +180,17 @@ class _EventsPageState extends State<EventsPage> {
             'Be the first to create an event!',
             style: TextStyle(color: AppColors.white, fontSize: 14),
           ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () => _handleCreateEvent(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.button,
-              foregroundColor: AppColors.white,
+          if (AdminUtils.isAdmin) ...[
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => _handleCreateEvent(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.button,
+                foregroundColor: AppColors.white,
+              ),
+              child: const Text('Create Event'),
             ),
-            child: const Text('Create Event'),
-          ),
+          ],
         ],
       ),
     );

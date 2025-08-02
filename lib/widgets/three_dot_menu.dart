@@ -27,7 +27,7 @@ class ThreeDotMenu extends StatelessWidget {
       itemBuilder: (BuildContext context) {
         List<PopupMenuEntry<String>> items = [];
 
-        if (showEdit) {
+        if (showEdit && onEdit != null) {
           items.add(
             PopupMenuItem<String>(
               value: 'edit',
@@ -45,7 +45,7 @@ class ThreeDotMenu extends StatelessWidget {
           );
         }
 
-        if (showDelete) {
+        if (showDelete && onDelete != null) {
           items.add(
             PopupMenuItem<String>(
               value: 'delete',

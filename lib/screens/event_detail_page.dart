@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../services/supabase_service.dart';
+import '../utils/admin_utils.dart';
 import '../widgets/three_dot_menu.dart';
 import '../models/location.dart';
 import 'add_location_page.dart';
@@ -223,11 +224,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ],
             ),
           ),
-          // Three-dot menu
-          ThreeDotMenu(
-            onEdit: () => _handleEditLocation(location),
-            onDelete: () => _handleDeleteLocation(locationId, locationName),
-          ),
+          // Three-dot menu - only show for admins
+          if (AdminUtils.isAdmin)
+            ThreeDotMenu(
+              onEdit: () => _handleEditLocation(location),
+              onDelete: () => _handleDeleteLocation(locationId, locationName),
+            ),
         ],
       ),
     );
@@ -404,54 +406,55 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ),
                 ),
               ),
-              Positioned(
-                right: AppConstants.x4,
-                bottom: 50,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final result = await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            AddLocationPage(eventId: widget.eventId),
-                      ),
-                    );
-                    // Refresh locations list when returning from add location page
-                    if (result == true || mounted) {
-                      _fetchLocations();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.white,
-                    foregroundColor: AppColors.black,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppConstants.x3,
-                      vertical: AppConstants.x2,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppConstants.x4),
-                    ),
-                    elevation: 4,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.add_location,
-                        size: 16,
-                        color: AppColors.black,
-                      ),
-                      SizedBox(width: AppConstants.x1),
-                      const Text(
-                        'Add Location',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+              if (AdminUtils.isAdmin)
+                Positioned(
+                  right: AppConstants.x4,
+                  bottom: 50,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final result = await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              AddLocationPage(eventId: widget.eventId),
                         ),
+                      );
+                      // Refresh locations list when returning from add location page
+                      if (result == true || mounted) {
+                        _fetchLocations();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.white,
+                      foregroundColor: AppColors.black,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppConstants.x3,
+                        vertical: AppConstants.x2,
                       ),
-                    ],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppConstants.x4),
+                      ),
+                      elevation: 4,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.add_location,
+                          size: 16,
+                          color: AppColors.black,
+                        ),
+                        SizedBox(width: AppConstants.x1),
+                        const Text(
+                          'Add Location',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           // Locations Card that overlaps the image and covers remaining area

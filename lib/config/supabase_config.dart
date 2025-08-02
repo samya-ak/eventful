@@ -23,4 +23,13 @@ class SupabaseConfig {
     }
     return key;
   }
+
+  /// Get IS_ADMIN flag from environment
+  static bool get isAdmin {
+    final adminFlag = dotenv.env['IS_ADMIN'];
+    if (adminFlag == null || adminFlag.isEmpty) {
+      return false; // Default to false if not set
+    }
+    return adminFlag.toLowerCase() == 'true';
+  }
 }

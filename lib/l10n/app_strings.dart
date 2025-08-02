@@ -1,5 +1,5 @@
 class AppStrings {
-  static const String appName = 'eventful';
+  static const String appName = 'Mataya';
   static const String eventsNearYouTitle = 'Events near you';
   static const String createButtonText = 'Create';
 

@@ -57,7 +57,9 @@ class EventCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        trailing: ThreeDotMenu(onEdit: onEdit, onDelete: onDelete),
+        trailing: (onEdit != null || onDelete != null)
+            ? ThreeDotMenu(onEdit: onEdit, onDelete: onDelete)
+            : null,
       ),
     );
   }

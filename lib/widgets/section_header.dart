@@ -21,28 +21,29 @@ class SectionHeader extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        ElevatedButton(
-          onPressed: onCreatePressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.button,
-            foregroundColor: AppColors.white,
-            padding: EdgeInsets.symmetric(
-              horizontal: AppConstants.x4,
-              vertical: AppConstants.x2,
+        if (onCreatePressed != null)
+          ElevatedButton(
+            onPressed: onCreatePressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.button,
+              foregroundColor: AppColors.white,
+              padding: EdgeInsets.symmetric(
+                horizontal: AppConstants.x4,
+                vertical: AppConstants.x2,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppConstants.x2),
+              ),
             ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppConstants.x2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.add, size: 16, color: AppColors.white),
+                SizedBox(width: AppConstants.x1),
+                const Text(AppStrings.createButtonText),
+              ],
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.add, size: 16, color: AppColors.white),
-              SizedBox(width: AppConstants.x1),
-              const Text(AppStrings.createButtonText),
-            ],
-          ),
-        ),
       ],
     );
   }
