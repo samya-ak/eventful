@@ -2,12 +2,21 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../models/event.dart';
+import '../widgets/three_dot_menu.dart';
 
 class EventCard extends StatelessWidget {
   final Event event;
   final VoidCallback? onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
-  const EventCard({super.key, required this.event, this.onTap});
+  const EventCard({
+    super.key,
+    required this.event,
+    this.onTap,
+    this.onEdit,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +57,7 @@ class EventCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
+        trailing: ThreeDotMenu(onEdit: onEdit, onDelete: onDelete),
       ),
     );
   }

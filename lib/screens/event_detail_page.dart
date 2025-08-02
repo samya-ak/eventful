@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../services/supabase_service.dart';
+import '../widgets/three_dot_menu.dart';
+import '../models/location.dart';
 import 'add_location_page.dart';
+import 'edit_location_page.dart';
 import 'event_map_page.dart';
 
 class EventDetailPage extends StatefulWidget {
@@ -60,9 +63,104 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
   }
 
+  Future<void> _handleEditLocation(Map<String, dynamic> location) async {
+    // Create a Location object from the map data
+    final locationData = Location(
+      locationId: location['location_id'],
+      eventId: widget.eventId,
+      locationName: location['location_name'] ?? '',
+      description: location['location_description'],
+      latitude: location['latitude']?.toDouble() ?? 0.0,
+      longitude: location['longitude']?.toDouble() ?? 0.0,
+      images: (location['images'] as List<dynamic>?)?.cast<String>(),
+      createdAt: location['created_at'] != null
+          ? DateTime.parse(location['created_at'])
+          : null,
+      updatedAt: location['updated_at'] != null
+          ? DateTime.parse(location['updated_at'])
+          : null,
+    );
+
+    // Navigate to edit location page
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            EditLocationPage(eventId: widget.eventId, location: locationData),
+      ),
+    );
+
+    // Refresh locations if edit was successful
+    if (result == true) {
+      _fetchLocations();
+    }
+  }
+
+  Future<void> _handleDeleteLocation(
+    String locationId,
+    String locationName,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.secondary,
+          title: const Text(
+            'Delete Location',
+            style: TextStyle(color: AppColors.white),
+          ),
+          content: Text(
+            'Are you sure you want to delete "$locationName"? This action cannot be undone.',
+            style: TextStyle(color: AppColors.whiteWithAlpha(0.9)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.white),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        await SupabaseService.deleteLocation(locationId);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Location "$locationName" deleted successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Refresh the locations list
+          _fetchLocations();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete location: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Widget _buildLocationCard(Map<String, dynamic> location) {
     final String locationName = location['location_name'] ?? 'Unnamed Location';
     final String? locationDescription = location['location_description'];
+    final String locationId = location['location_id'];
 
     return Container(
       margin: const EdgeInsets.symmetric(
@@ -124,6 +222,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ),
               ],
             ),
+          ),
+          // Three-dot menu
+          ThreeDotMenu(
+            onEdit: () => _handleEditLocation(location),
+            onDelete: () => _handleDeleteLocation(locationId, locationName),
           ),
         ],
       ),

@@ -35,33 +35,30 @@ class _EventMapPageState extends State<EventMapPage> {
   }
 
   Future<void> _loadKmlDataIfNeeded() async {
-    // Check if this is the "second event" to load KML data
-    if (widget.eventName.toLowerCase() == "second event") {
-      setState(() {
-        _isLoadingKml = true;
-      });
+    setState(() {
+      _isLoadingKml = true;
+    });
 
-      try {
-        // Use Flutter's asset loading instead of File system
-        const kmlPath = 'lib/routes/mattya-2082.kml';
-        final kmlData = await KmlParser.parseKmlAsset(kmlPath);
+    try {
+      // Use Flutter's asset loading instead of File system
+      const kmlPath = 'lib/routes/mattya-2082.kml';
+      final kmlData = await KmlParser.parseKmlAsset(kmlPath);
 
-        if (mounted) {
-          setState(() {
-            _kmlData = kmlData;
-            _isLoadingKml = false;
-          });
+      if (mounted) {
+        setState(() {
+          _kmlData = kmlData;
+          _isLoadingKml = false;
+        });
 
-          // Recalculate initial view to include KML data
-          _calculateInitialView();
-        }
-      } catch (e) {
-        print('Error loading KML data: $e');
-        if (mounted) {
-          setState(() {
-            _isLoadingKml = false;
-          });
-        }
+        // Recalculate initial view to include KML data
+        _calculateInitialView();
+      }
+    } catch (e) {
+      print('Error loading KML data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingKml = false;
+        });
       }
     }
   }

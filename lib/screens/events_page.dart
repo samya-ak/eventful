@@ -8,6 +8,7 @@ import '../widgets/section_header.dart';
 import '../widgets/event_card.dart';
 import '../services/supabase_service.dart';
 import 'create_event_page.dart';
+import 'edit_event_page.dart';
 import 'event_detail_page.dart';
 
 class EventsPage extends StatefulWidget {
@@ -92,7 +93,12 @@ class _EventsPageState extends State<EventsPage> {
         itemCount: _events.length,
         itemBuilder: (context, index) {
           final event = _events[index];
-          return EventCard(event: event, onTap: () => _handleEventTap(event));
+          return EventCard(
+            event: event,
+            onTap: () => _handleEventTap(event),
+            onEdit: () => _handleEditEvent(event),
+            onDelete: () => _handleDeleteEvent(event),
+          );
         },
       ),
     );
@@ -207,5 +213,76 @@ class _EventsPageState extends State<EventsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleEditEvent(Event event) async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => EditEventPage(event: event)),
+    );
+
+    // If the event was updated successfully, refresh the list
+    if (result == true) {
+      _loadEvents();
+    }
+  }
+
+  Future<void> _handleDeleteEvent(Event event) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.secondary,
+          title: const Text(
+            'Delete Event',
+            style: TextStyle(color: AppColors.white),
+          ),
+          content: Text(
+            'Are you sure you want to delete "${event.name}"? This action cannot be undone.',
+            style: TextStyle(color: AppColors.whiteWithAlpha(0.8)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.white),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && event.eventId != null) {
+      try {
+        await SupabaseService.deleteEvent(event.eventId!);
+
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Event "${event.name}" deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Refresh the events list
+          _loadEvents();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete event: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }
