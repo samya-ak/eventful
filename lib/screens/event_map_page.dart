@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../services/kml_parser.dart';
+import '../widgets/location_detail_drawer.dart';
 
 class EventMapPage extends StatefulWidget {
   final String eventName;
@@ -77,19 +78,13 @@ class _EventMapPageState extends State<EventMapPage> {
       }
     }
 
-    // Add KML data if available
+    // Add KML data if available (only polyline coordinates, not placemarks)
     if (_kmlData != null) {
-      // Add KML placemarks
-      for (var placemark in _kmlData!.placemarks) {
-        allCoordinates.add(placemark.coordinates);
-      }
-
-      // Add KML polyline coordinates
+      // Add KML polyline coordinates only
       for (var polyline in _kmlData!.polylines) {
         allCoordinates.addAll(polyline.coordinates);
       }
     }
-
     if (allCoordinates.isEmpty) {
       // Default to Kathmandu, Nepal if no coordinates
       _initialCenter = const LatLng(27.7172, 85.3240);
@@ -154,6 +149,12 @@ class _EventMapPageState extends State<EventMapPage> {
       final latitude = location['latitude'];
       final longitude = location['longitude'];
       final locationName = location['location_name'] ?? 'Unnamed Location';
+      final locationDescription = location['location_description'];
+      final List<String> imageUrls =
+          (location['images'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          <String>[];
 
       if (latitude != null && longitude != null) {
         markers.add(
@@ -163,13 +164,12 @@ class _EventMapPageState extends State<EventMapPage> {
             height: 40,
             child: GestureDetector(
               onTap: () {
-                // Show location name when marker is tapped
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(locationName),
-                    backgroundColor: AppColors.secondary,
-                    duration: const Duration(seconds: 2),
-                  ),
+                // Show location detail drawer when marker is tapped
+                showLocationDetailDrawer(
+                  context,
+                  locationName: locationName,
+                  description: locationDescription,
+                  imageUrls: imageUrls,
                 );
               },
               child: const Icon(Icons.location_on, color: Colors.red, size: 40),
@@ -179,6 +179,9 @@ class _EventMapPageState extends State<EventMapPage> {
       }
     }
 
+    // Note: KML placemark markers are intentionally not added - only showing polylines
+    // If you want to add KML placemarks back, uncomment the code below:
+    /*
     // Add KML placemark markers
     if (_kmlData != null) {
       for (var placemark in _kmlData!.placemarks) {
@@ -189,18 +192,12 @@ class _EventMapPageState extends State<EventMapPage> {
             height: 40,
             child: GestureDetector(
               onTap: () {
-                // Show placemark name and description when marker is tapped
-                final description =
-                    placemark.description != null &&
-                        placemark.description!.isNotEmpty
-                    ? '\n${placemark.description!}'
-                    : '';
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${placemark.name}$description'),
-                    backgroundColor: AppColors.secondary,
-                    duration: const Duration(seconds: 3),
-                  ),
+                // Show KML placemark detail drawer when marker is tapped
+                showLocationDetailDrawer(
+                  context,
+                  locationName: placemark.name,
+                  description: placemark.description,
+                  imageUrls: <String>[], // KML placemarks don't have images
                 );
               },
               child: const Icon(
@@ -213,6 +210,7 @@ class _EventMapPageState extends State<EventMapPage> {
         );
       }
     }
+    */
 
     return markers;
   }
@@ -237,18 +235,12 @@ class _EventMapPageState extends State<EventMapPage> {
 
   String _buildLocationCountText() {
     int totalLocations = widget.locations.length;
-    int kmlLocations = _kmlData?.placemarks.length ?? 0;
     int kmlRoutes = _kmlData?.polylines.length ?? 0;
 
     String text = '';
 
     if (totalLocations > 0) {
       text += '$totalLocations location${totalLocations != 1 ? 's' : ''}';
-    }
-
-    if (kmlLocations > 0) {
-      if (text.isNotEmpty) text += ' • ';
-      text += '$kmlLocations KML point${kmlLocations != 1 ? 's' : ''}';
     }
 
     if (kmlRoutes > 0) {
